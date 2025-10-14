@@ -12,13 +12,14 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={inter.className}>
-      <body className="min-h-screen bg-rtm.bg text-rtm.text">
+      <body className="min-h-screen bg-rtm-bg text-rtm-text">
         {/* NAVBAR */}
-        <header className="sticky top-0 z-50 border-b border-rtm.border bg-rtm.surface/90 backdrop-blur">
+        <header className="sticky top-0 z-50 border-b border-rtm-border bg-rtm-surface/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 h-14 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 no-underline">
-              {/* Logo tipográfico simple */}
-              <span className="text-xl font-bold tracking-wide">RTM <span className="text-rtm.brand">Equipment</span></span>
+              <span className="text-xl font-bold tracking-wide">
+                RTM <span className="text-rtm-brand">Equipment</span>
+              </span>
             </Link>
             <nav className="flex items-center gap-2">
               <Link className="btn btn-ghost no-underline" href="/dealers">Distribuidores</Link>
@@ -27,14 +28,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
 
-        {/* CONTENIDO */}
         <main className="mx-auto max-w-7xl px-4 py-8">
           {children}
         </main>
 
-        {/* FOOTER */}
-        <footer className="mt-12 border-t border-rtm.border">
-          <div className="mx-auto max-w-7xl px-4 py-6 text-sm text-rtm.sub">
+        <footer className="mt-12 border-t border-rtm-border">
+          <div className="mx-auto max-w-7xl px-4 py-6 text-sm text-rtm-sub">
             © {new Date().getFullYear()} RTM Equipment — Uso privado. Datos actualizados cada ~60 s.
           </div>
         </footer>
