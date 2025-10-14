@@ -75,26 +75,36 @@ export default function StockClient({
 
   return (
     <section className="grid gap-4">
-      {/* Filtros + buscador */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => onType("TODOS")}
-            className={`chip ${activeType === "TODOS" ? "chip-active" : "chip-muted"}`}
-          >
-            Todos ({rows.length})
-          </button>
+{/* Filtros + buscador (sticky bajo el header) */}
+<div className="sticky top-[var(--header-h)] z-30 bg-rtm-surface/80 backdrop-blur-xl border border-rtm-border rounded-xl px-3 py-3 sticky-elev">
+  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={() => onType("TODOS")}
+        className={`chip ${activeType==="TODOS" ? "chip-active" : "chip-muted"}`}
+      >
+        Todos ({rows.length})
+      </button>
 
-          {typesSorted.map(t => (
-            <button
-              key={t}
-              onClick={() => onType(t)}
-              className={`chip ${activeType === t ? "chip-active" : "chip-muted"}`}
-            >
-              {t.charAt(0) + t.slice(1).toLowerCase()} ({counts[t] || 0})
-            </button>
-          ))}
-        </div>
+      {typesSorted.map(t => (
+        <button
+          key={t}
+          onClick={() => onType(t)}
+          className={`chip ${activeType===t ? "chip-active" : "chip-muted"}`}
+        >
+          {t.charAt(0) + t.slice(1).toLowerCase()} ({counts[t] || 0})
+        </button>
+      ))}
+    </div>
+
+    <input
+      placeholder="Filtrar por modelo o especificaciones…"
+      value={query}
+      onChange={e => onQuery(e.target.value)}
+      className="bg-rtm-surface2 border border-rtm-border rounded-lg px-3 py-2 text-sm outline-none focus:border-rtm-brand w-[320px] max-w-full"
+    />
+  </div>
+</div>
 
         <input
           placeholder="Filtrar por modelo o especificaciones…"
