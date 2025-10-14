@@ -60,3 +60,15 @@ a { @apply underline decoration-transparent hover:decoration-inherit transition;
 /* Sombra sutil cuando la barra de filtros está pegada */
 .sticky-elev { box-shadow: 0 4px 16px rgba(0,0,0,.25); }
 
+/* Chips de estado adicionales */
+.chip-ok {
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
+         border border-emerald-600/50 bg-emerald-500/10 text-emerald-300;
+}
+
+.chip-info {
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
+         border border-sky-600/50 bg-sky-500/10 text-sky-300;
+}
+
+
