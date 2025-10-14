@@ -41,3 +41,6 @@ a { @apply underline decoration-transparent hover:decoration-inherit transition;
 .table th { @apply text-rtm-sub font-semibold text-left px-3 py-2 bg-rtm-surface2; }
 .table td { @apply px-3 py-2 border-b border-rtm-border; }
 .table tr:hover td { @apply bg-rtm-surface2; }
+
+.num { @apply tabular-nums; }
+
