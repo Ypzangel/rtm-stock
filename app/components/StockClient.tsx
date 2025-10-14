@@ -48,7 +48,8 @@ export default function StockClient({
     const q = query.trim().toLowerCase();
     return rows.filter(r => {
       const okType = activeType === "TODOS" || normalizeType(r.tipo) === activeType;
-      const okQuery = !q ||
+      const okQuery =
+        !q ||
         r.modelo?.toLowerCase().includes(q) ||
         r.especificaciones?.toLowerCase().includes(q);
       return okType && okQuery;
@@ -79,7 +80,7 @@ export default function StockClient({
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => onType("TODOS")}
-            className={`chip ${activeType==="TODOS" ? "chip-active" : "chip-muted"}`}
+            className={`chip ${activeType === "TODOS" ? "chip-active" : "chip-muted"}`}
           >
             Todos ({rows.length})
           </button>
@@ -88,7 +89,7 @@ export default function StockClient({
             <button
               key={t}
               onClick={() => onType(t)}
-              className={`chip ${activeType===t ? "chip-active" : "chip-muted"}`}
+              className={`chip ${activeType === t ? "chip-active" : "chip-muted"}`}
             >
               {t.charAt(0) + t.slice(1).toLowerCase()} ({counts[t] || 0})
             </button>
