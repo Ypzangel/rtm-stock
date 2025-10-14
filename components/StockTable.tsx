@@ -1,3 +1,7 @@
+'use client';
+
+import { useState } from "react";
+
 type Row = {
   modelo: string;
   combustion: string;
@@ -10,7 +14,6 @@ type Row = {
 
 function keepEuroNoWrap(v?: string | null) {
   if (!v) return "-";
-  // sustituye " €" por "&nbsp;€" para evitar salto de línea
   return v.replace(/\s€$/, "\u00A0€");
 }
 
@@ -21,18 +24,26 @@ export default function StockTable({
   rows: Row[];
   showPrice?: boolean;
 }) {
+  // set con índices expandidos
+  const [open, setOpen] = useState<Set<number>>(new Set());
+
+  const toggle = (i: number) => {
+    const next = new Set(open);
+    next.has(i) ? next.delete(i) : next.add(i);
+    setOpen(next);
+  };
+
   return (
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="table table-fixed">
-          {/* Anchuras (mejor en md+). En móvil, Tailwind ignora y reparte automático */}
+        <table className="table">
           <colgroup>
-            <col className="md:w-[22%]" /> {/* Modelo */}
-            <col className="hidden md:table-column md:w-[18%]" /> {/* Combustión */}
-            <col className="md:w-[42%]" /> {/* Especificaciones */}
-            <col className="md:w-[8%]" />  {/* Cant. */}
-            {showPrice && <col className="md:w-[12%]" />} {/* Precio */}
-            <col className="md:w-[12%]" /> {/* Llegada */}
+            <col className="md:w-[22%]" />
+            <col className="hidden md:table-column md:w-[18%]" />
+            <col className="md:w-[42%]" />
+            <col className="md:w-[8%]" />
+            {showPrice && <col className="md:w-[12%]" />}
+            <col className="md:w-[12%]" />
           </colgroup>
 
           <thead className="sticky top-0 z-10">
@@ -47,46 +58,60 @@ export default function StockTable({
           </thead>
 
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={i}>
-                {/* Modelo */}
-                <td className="font-medium pr-2">
-                  <span className="block truncate">{r.modelo}</span>
-                </td>
+            {rows.map((r, i) => {
+              const isOpen = open.has(i);
+              const longText = (r.especificaciones || "").length > 140;
 
-                {/* Combustión (oculta en móvil) */}
-                <td className="hidden md:table-cell text-rtm-sub pr-2">
-                  <span className="block truncate">{r.combustion}</span>
-                </td>
-
-                {/* Especificaciones: más compacta en móvil */}
-                <td className="pr-2">
-                  <p className="text-rtm-text/90 md:truncate">
-                    {r.especificaciones}
-                  </p>
-                </td>
-
-                {/* Cantidad */}
-                <td className="text-center whitespace-nowrap">{r.cantidad}</td>
-
-                {/* Precio (si aplica) - sin saltos de línea antes del € */}
-                {showPrice && (
-                  <td className="text-right font-semibold whitespace-nowrap tabular-nums">
-                    {keepEuroNoWrap(r.precioRaw)}
+              return (
+                <tr key={i}>
+                  {/* Modelo */}
+                  <td className="font-medium pr-2">
+                    <span className="block truncate">{r.modelo}</span>
                   </td>
-                )}
 
-                {/* Llegada (alineada derecha, sin flex en td) */}
-                <td className="text-right whitespace-nowrap">
-                  <span className="inline-flex items-center gap-2 justify-end">
-                    <span>{r.llegada || "-"}</span>
-                    {r.urgent ? (
-                      <span className="chip chip-warn whitespace-nowrap">Próxima llegada</span>
-                    ) : null}
-                  </span>
-                </td>
-              </tr>
-            ))}
+                  {/* Combustión (oculta en móvil) */}
+                  <td className="hidden md:table-cell text-rtm-sub pr-2">
+                    <span className="block">{r.combustion}</span>
+                  </td>
+
+                  {/* Especificaciones: wrap normal; clamp cuando está cerrado */}
+                  <td className="pr-2 align-top">
+                    <div className={isOpen ? "" : "clamp-2"}>
+                      {r.especificaciones}
+                    </div>
+                    {longText && (
+                      <button
+                        type="button"
+                        onClick={() => toggle(i)}
+                        className="mt-1 text-rtm-brand underline underline-offset-2"
+                      >
+                        {isOpen ? "Ver menos" : "Ver más"}
+                      </button>
+                    )}
+                  </td>
+
+                  {/* Cantidad */}
+                  <td className="text-center whitespace-nowrap align-top">{r.cantidad}</td>
+
+                  {/* Precio */}
+                  {showPrice && (
+                    <td className="text-right font-semibold whitespace-nowrap tabular-nums align-top">
+                      {keepEuroNoWrap(r.precioRaw)}
+                    </td>
+                  )}
+
+                  {/* Llegada */}
+                  <td className="text-right whitespace-nowrap align-top">
+                    <span className="inline-flex items-center gap-2 justify-end">
+                      <span>{r.llegada || "-"}</span>
+                      {r.urgent ? (
+                        <span className="chip chip-warn whitespace-nowrap">Próxima llegada</span>
+                      ) : null}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
