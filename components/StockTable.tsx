@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import StockTable from "./StockTable";
 
-type Row = {
+export type Row = {
+  tipo?: string;                 // viene de Apps Script
   modelo: string;
   combustion: string;
   especificaciones: string;
@@ -12,109 +14,125 @@ type Row = {
   urgent?: boolean;
 };
 
-function keepEuroNoWrap(v?: string | null) {
-  if (!v) return "-";
-  return v.replace(/\s€$/, "\u00A0€");
+const TYPES_ORDER = ["APILADOR ELECTRICO","CARRETILLA 3R","CARRETILLA 4R","TRANSPALETa ELECTRICA"];
+
+function normalizeType(v?: string) {
+  return (v || "").trim().toUpperCase();
 }
 
-export default function StockTable({
+export default function StockClient({
   rows,
   showPrice = false,
+  pageSize = 25,
 }: {
   rows: Row[];
   showPrice?: boolean;
+  pageSize?: number;
 }) {
-  // set con índices expandidos
-  const [open, setOpen] = useState<Set<number>>(new Set());
+  const [query, setQuery] = useState("");
+  const [activeType, setActiveType] = useState<string>("TODOS");
+  const [page, setPage] = useState(1);
 
-  const toggle = (i: number) => {
-    const next = new Set(open);
-    next.has(i) ? next.delete(i) : next.add(i);
-    setOpen(next);
-  };
+  // grupos por tipo para contadores
+  const counts = useMemo(() => {
+    const all: Record<string, number> = {};
+    rows.forEach(r => {
+      const t = normalizeType(r.tipo);
+      all[t] = (all[t] || 0) + 1;
+    });
+    return all;
+  }, [rows]);
+
+  // filtros
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter(r => {
+      const okType = activeType === "TODOS" || normalizeType(r.tipo) === activeType;
+      const okQuery = !q ||
+        r.modelo?.toLowerCase().includes(q) ||
+        r.especificaciones?.toLowerCase().includes(q);
+      return okType && okQuery;
+    });
+  }, [rows, query, activeType]);
+
+  // paginación
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const pageRows = filtered.slice(start, start + pageSize);
+
+  // si cambian filtros o query -> vuelve a pág 1
+  const onType = (t: string) => { setActiveType(t); setPage(1); };
+  const onQuery = (v: string) => { setQuery(v); setPage(1); };
+
+  const typesSorted = useMemo(() => {
+    // orden preferido + el resto (por si aparece nuevo tipo)
+    const set = new Set(TYPES_ORDER.map(normalizeType));
+    const present = Object.keys(counts);
+    const known = TYPES_ORDER.map(normalizeType).filter(t => present.includes(t));
+    const others = present.filter(t => !set.has(t)).sort();
+    return [...known, ...others];
+  }, [counts]);
 
   return (
-    <div className="card overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="table">
-          <colgroup>
-            <col className="md:w-[22%]" />
-            <col className="hidden md:table-column md:w-[18%]" />
-            <col className="md:w-[42%]" />
-            <col className="md:w-[8%]" />
-            {showPrice && <col className="md:w-[12%]" />}
-            <col className="md:w-[12%]" />
-          </colgroup>
+    <section className="grid gap-4">
+      {/* Barra de filtros */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => onType("TODOS")}
+            className={`chip ${activeType==="TODOS" ? "chip-active" : "chip-muted"}`}
+          >
+            Todos ({rows.length})
+          </button>
 
-          <thead className="sticky top-0 z-10">
-            <tr>
-              <th className="whitespace-nowrap">Modelo</th>
-              <th className="hidden md:table-cell whitespace-nowrap">Combustión/Batería</th>
-              <th className="whitespace-nowrap">Especificaciones</th>
-              <th className="text-center whitespace-nowrap">Cant.</th>
-              {showPrice && <th className="text-right whitespace-nowrap">Precio</th>}
-              <th className="text-right whitespace-nowrap">Llegada</th>
-            </tr>
-          </thead>
+          {typesSorted.map(t => (
+            <button
+              key={t}
+              onClick={() => onType(t)}
+              className={`chip ${activeType===t ? "chip-active" : "chip-muted"}`}
+            >
+              {t.charAt(0) + t.slice(1).toLowerCase()} ({counts[t] || 0})
+            </button>
+          ))}
+        </div>
 
-          <tbody>
-            {rows.map((r, i) => {
-              const isOpen = open.has(i);
-              const longText = (r.especificaciones || "").length > 140;
-
-              return (
-                <tr key={i}>
-                  {/* Modelo */}
-                  <td className="font-medium pr-2">
-                    <span className="block truncate">{r.modelo}</span>
-                  </td>
-
-                  {/* Combustión (oculta en móvil) */}
-                  <td className="hidden md:table-cell text-rtm-sub pr-2">
-                    <span className="block">{r.combustion}</span>
-                  </td>
-
-                  {/* Especificaciones: wrap normal; clamp cuando está cerrado */}
-                  <td className="pr-2 align-top">
-                    <div className={isOpen ? "" : "clamp-2"}>
-                      {r.especificaciones}
-                    </div>
-                    {longText && (
-                      <button
-                        type="button"
-                        onClick={() => toggle(i)}
-                        className="mt-1 text-rtm-brand underline underline-offset-2"
-                      >
-                        {isOpen ? "Ver menos" : "Ver más"}
-                      </button>
-                    )}
-                  </td>
-
-                  {/* Cantidad */}
-                  <td className="text-center whitespace-nowrap align-top">{r.cantidad}</td>
-
-                  {/* Precio */}
-                  {showPrice && (
-                    <td className="text-right font-semibold whitespace-nowrap tabular-nums align-top">
-                      {keepEuroNoWrap(r.precioRaw)}
-                    </td>
-                  )}
-
-                  {/* Llegada */}
-                  <td className="text-right whitespace-nowrap align-top">
-                    <span className="inline-flex items-center gap-2 justify-end">
-                      <span>{r.llegada || "-"}</span>
-                      {r.urgent ? (
-                        <span className="chip chip-warn whitespace-nowrap">Próxima llegada</span>
-                      ) : null}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="flex items-center gap-2">
+          <input
+            placeholder="Filtrar por modelo o especificaciones…"
+            value={query}
+            onChange={e => onQuery(e.target.value)}
+            className="bg-rtm-surface2 border border-rtm-border rounded-lg px-3 py-2 text-sm outline-none focus:border-rtm-brand w-[320px] max-w-full"
+          />
+        </div>
       </div>
-    </div>
+
+      {/* Tabla */}
+      <StockTable rows={pageRows} showPrice={showPrice} />
+
+      {/* Paginación */}
+      <div className="flex items-center justify-between text-sm text-rtm-sub">
+        <div>
+          Mostrando {start + 1}-{Math.min(start + pageSize, filtered.length)} de {filtered.length}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn btn-ghost"
+            disabled={safePage <= 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+          >
+            ← Anterior
+          </button>
+          <span>Página {safePage} / {totalPages}</span>
+          <button
+            className="btn btn-ghost"
+            disabled={safePage >= totalPages}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          >
+            Siguiente →
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
