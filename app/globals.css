@@ -4,4 +4,48 @@
 
 /* Dark base */
 :root { color-scheme: dark; }
-html, body { background: #0B0C10; color: #FFFFFF; }
+html, body {
+  background: theme('colors.rtm.bg');
+  color: theme('colors.rtm.text');
+}
+
+/* Tipografía base y enlaces */
+body { @apply antialiased; }
+a { @apply underline decoration-transparent hover:decoration-inherit transition; }
+
+/* Tarjeta */
+.card {
+  @apply bg-rtm.surface rounded-xl2 shadow-soft border border-rtm.border;
+}
+
+/* Botones */
+.btn {
+  @apply inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium border border-transparent;
+}
+.btn-primary {
+  @apply bg-rtm.brand hover:bg-rtm.brand2 text-white;
+}
+.btn-ghost {
+  @apply bg-transparent hover:bg-rtm.surface2 text-rtm.text border border-rtm.border;
+}
+
+/* Chips / Badges */
+.chip {
+  @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium;
+}
+.chip-warn { @apply bg-rtm.warn/20 text-rtm.warn border border-rtm.warn/30; }
+.chip-muted { @apply bg-rtm.surface2 text-rtm.sub border border-rtm.border; }
+
+/* Tabla */
+.table {
+  @apply w-full text-sm;
+}
+.table th {
+  @apply text-rtm.sub font-semibold text-left px-3 py-2 bg-rtm.surface2;
+}
+.table td {
+  @apply px-3 py-2 border-b border-rtm.border;
+}
+.table tr:hover td {
+  @apply bg-rtm.surface2;
+}
