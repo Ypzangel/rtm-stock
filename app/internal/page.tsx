@@ -1,6 +1,8 @@
-import StockTable from "@/components/StockTable";
+import dynamic from "next/dynamic";
 
 export const revalidate = 60;
+
+const StockClient = dynamic(() => import("@/components/StockClient"), { ssr: false });
 
 export default async function InternalPage() {
   const url = process.env.APPSCRIPT_URL!;
@@ -30,7 +32,7 @@ export default async function InternalPage() {
         </div>
       </header>
 
-      <StockTable rows={data.rows} showPrice />
+      <StockClient rows={data.rows} showPrice pageSize={25} />
     </section>
   );
 }
