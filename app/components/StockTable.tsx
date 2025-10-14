@@ -147,15 +147,45 @@ export default function StockTable({
                     </td>
                   )}
 
-                  {/* Llegada */}
-                  <td className="text-right whitespace-nowrap align-top">
-                    <span className="inline-flex items-center gap-2 justify-end">
-                      <span>{r.llegada || "-"}</span>
-                      {r.urgent ? (
-                        <span className="chip chip-warn whitespace-nowrap">Próxima llegada</span>
-                      ) : null}
-                    </span>
-                  </td>
+{/* Llegada */}
+<td className="text-right whitespace-nowrap align-top">
+  {(() => {
+    const raw = (r.llegada || "").trim();
+    const norm = raw
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase(); // quita acentos: FABRICACIÓN -> FABRICACION
+
+    // badge a mostrar
+    let badge: JSX.Element | null = null;
+    // texto (fecha) a mostrar
+    let text: string | null = null;
+
+    if (norm === "FABRICACION") {
+      // Solo badge azul
+      badge = <span className="chip-info">Fabricación</span>;
+    } else if (norm === "STOCK") {
+      // Solo badge verde
+      badge = <span className="chip-ok">Stock</span>;
+    } else if (raw) {
+      // Fecha (con o sin "Próxima llegada")
+      text = raw;
+      if (r.urgent) {
+        badge = <span className="chip chip-warn">Próxima llegada</span>;
+      }
+    } else {
+      text = "-";
+    }
+
+    return (
+      <span className="inline-flex items-center gap-2 justify-end">
+        {text ? <span>{text}</span> : null}
+        {badge}
+      </span>
+    );
+  })()}
+</td>
+
                 </tr>
               );
             })}
