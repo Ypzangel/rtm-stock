@@ -2,8 +2,7 @@ import dynamic from "next/dynamic";
 
 export const revalidate = 60;
 
-// Cargamos el componente de cliente solo en el navegador
-const StockClient = dynamic(() => import("@/components/StockClient"), { ssr: false });
+const StockClient = dynamic(() => import("../components/StockClient"), { ssr: false });
 
 export default async function DealersPage() {
   const url = process.env.APPSCRIPT_URL!;
@@ -24,7 +23,6 @@ export default async function DealersPage() {
         <span className="chip chip-muted">Visible: {data.rows.length}</span>
       </header>
 
-      {/* Renderiza en cliente */}
       <StockClient rows={data.rows} showPrice={false} pageSize={25} />
     </section>
   );
