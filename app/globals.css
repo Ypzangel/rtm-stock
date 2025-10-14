@@ -51,5 +51,5 @@ a { @apply underline decoration-transparent hover:decoration-inherit transition;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
-
+/* Estado activo para chips de filtro */
+.chip-active { @apply bg-rtm-brand text-white border-rtm-brand; }
