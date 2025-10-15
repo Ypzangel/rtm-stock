@@ -12,6 +12,7 @@ export type Row = {
   llegada: string;
   precioRaw?: string | null;
   urgent?: boolean;
+  fotoUrl?: string;        // 👈 añadimos la URL de la foto
 };
 
 const TYPES_ORDER = ["APILADOR ELECTRICO","CARRETILLA 3R","CARRETILLA 4R","TRANSPALETA ELECTRICA"];
@@ -75,7 +76,6 @@ export default function StockClient({
 
   return (
     <section className="grid gap-4">
-
       {/* Filtros + buscador (sticky bajo el header) */}
       <div className="sticky top-[var(--header-h)] z-30 bg-rtm-surface/80 backdrop-blur-xl border border-rtm-border rounded-xl px-3 py-3 sticky-elev">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
