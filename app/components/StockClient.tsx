@@ -1,151 +1,140 @@
-"use client";
+'use client';
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
+import StockTable from "./StockTable";
 
-// 👇 CAMBIA 'type Row' → 'export type Row'
 export type Row = {
-  tipo: string;
+  tipo?: string;
   modelo: string;
   combustion: string;
   especificaciones: string;
   cantidad: string;
   llegada: string;
-  fotoUrl: string;
-  precioRaw: string;
-  precio: number | null;
-  ubicacion?: string;
+  precioRaw?: string | null;
   urgent?: boolean;
-  daysTo?: number | null;
+  ubicacion?: string | null; // NUEVO
 };
+
+const TYPES_ORDER = ["APILADOR ELECTRICO","CARRETILLA 3R","CARRETILLA 4R","TRANSPALETA ELECTRICA"];
+
+function normalizeType(v?: string) {
+  return (v || "").trim().toUpperCase();
+}
 
 export default function StockClient({
   rows,
-  showPrice = true,
-  showLocation = false,
-  pageSize = 20,
+  showPrice = false,
+  showLocation = false,   // NUEVO
+  pageSize = 25,
 }: {
   rows: Row[];
   showPrice?: boolean;
-  showLocation?: boolean;
+  showLocation?: boolean; // NUEVO
   pageSize?: number;
 }) {
+  const [query, setQuery] = useState("");
+  const [activeType, setActiveType] = useState<string>("TODOS");
   const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const sortedRows = useMemo(() => {
-    if (!sortKey) return rows;
-
-    const dir = sortDir === "asc" ? 1 : -1;
-    return [...rows].sort((a: any, b: any) => {
-      const av = (a[sortKey] ?? "").toString().toLowerCase();
-      const bv = (b[sortKey] ?? "").toString().toLowerCase();
-
-      if (sortKey === "precio") return ((a.precio ?? 0) - (b.precio ?? 0)) * dir;
-      if (sortKey === "cantidad") return ((+a.cantidad || 0) - (+b.cantidad || 0)) * dir;
-
-      return av > bv ? dir : av < bv ? -dir : 0;
+  // contadores por tipo
+  const counts = useMemo(() => {
+    const all: Record<string, number> = {};
+    rows.forEach(r => {
+      const t = normalizeType(r.tipo);
+      all[t] = (all[t] || 0) + 1;
     });
-  }, [rows, sortKey, sortDir]);
+    return all;
+  }, [rows]);
 
-  const totalPages = Math.ceil(sortedRows.length / pageSize);
-  const start = (page - 1) * pageSize;
-  const visible = sortedRows.slice(start, start + pageSize);
+  // datos filtrados (modelo + especificaciones)
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter(r => {
+      const okType = activeType === "TODOS" || normalizeType(r.tipo) === activeType;
+      const okQuery =
+        !q ||
+        r.modelo?.toLowerCase().includes(q) ||
+        r.especificaciones?.toLowerCase().includes(q);
+      return okType && okQuery;
+    });
+  }, [rows, query, activeType]);
 
-  const handleSort = (key: string) => {
-    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
-  };
+  // paginación
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const pageRows = filtered.slice(start, start + pageSize);
+
+  const onType = (t: string) => { setActiveType(t); setPage(1); };
+  const onQuery = (v: string) => { setQuery(v); setPage(1); };
+
+  const typesSorted = useMemo(() => {
+    const set = new Set(TYPES_ORDER.map(normalizeType));
+    const present = Object.keys(counts);
+    const known = TYPES_ORDER.map(normalizeType).filter(t => present.includes(t));
+    const others = present.filter(t => !set.has(t)).sort();
+    return [...known, ...others];
+  }, [counts]);
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-rtm-border bg-rtm-surface">
-      <table className="min-w-full text-sm">
-        <thead>
-          <tr className="bg-rtm-surface-dark text-rtm-sub uppercase text-xs">
-            <th onClick={() => handleSort("modelo")} className="cursor-pointer px-4 py-2 text-left">
-              Modelo {sortKey === "modelo" && (sortDir === "asc" ? "▲" : "▼")}
-            </th>
-            <th onClick={() => handleSort("combustion")} className="cursor-pointer px-4 py-2 text-left">
-              Combustión/Batería {sortKey === "combustion" && (sortDir === "asc" ? "▲" : "▼")}
-            </th>
-            <th className="px-4 py-2 text-left">Especificaciones</th>
-            <th onClick={() => handleSort("cantidad")} className="cursor-pointer px-4 py-2 text-right">
-              Cant. {sortKey === "cantidad" && (sortDir === "asc" ? "▲" : "▼")}
-            </th>
+    <section className="grid gap-4">
+      {/* Filtros + buscador (sticky bajo el header) */}
+      <div className="sticky top-[var(--header-h)] z-30 bg-rtm-surface/80 backdrop-blur-xl border border-rtm-border rounded-xl px-3 py-3 sticky-elev">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => onType("TODOS")}
+              className={`chip ${activeType==="TODOS" ? "chip-active" : "chip-muted"}`}
+            >
+              Todos ({rows.length})
+            </button>
 
-            {showPrice && (
-              <th onClick={() => handleSort("precio")} className="cursor-pointer px-4 py-2 text-right">
-                Precio {sortKey === "precio" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-            )}
+            {typesSorted.map(t => (
+              <button
+                key={t}
+                onClick={() => onType(t)}
+                className={`chip ${activeType===t ? "chip-active" : "chip-muted"}`}
+              >
+                {t.charAt(0) + t.slice(1).toLowerCase()} ({counts[t] || 0})
+              </button>
+            ))}
+          </div>
 
-            {showLocation && (
-              <th onClick={() => handleSort("ubicacion")} className="cursor-pointer px-4 py-2 text-left">
-                Ubicación {sortKey === "ubicacion" && (sortDir === "asc" ? "▲" : "▼")}
-              </th>
-            )}
+          <input
+            placeholder="Filtrar por modelo o especificaciones…"
+            value={query}
+            onChange={e => onQuery(e.target.value)}
+            className="bg-rtm-surface2 border border-rtm-border rounded-lg px-3 py-2 text-sm outline-none focus:border-rtm-brand w-[320px] max-w-full"
+          />
+        </div>
+      </div>
 
-            <th onClick={() => handleSort("llegada")} className="cursor-pointer px-4 py-2 text-right">
-              Llegada {sortKey === "llegada" && (sortDir === "asc" ? "▲" : "▼")}
-            </th>
-          </tr>
-        </thead>
+      {/* Tabla */}
+      <StockTable rows={pageRows} showPrice={showPrice} showLocation={showLocation} />
 
-        <tbody>
-          {visible.map((r, i) => (
-            <tr key={i} className="border-t border-rtm-border/40 hover:bg-rtm-surface-dark/50">
-              <td className="px-4 py-2 font-medium">{r.modelo}</td>
-              <td className="px-4 py-2 whitespace-nowrap">{r.combustion}</td>
-              <td className="px-4 py-2 text-ellipsis max-w-xs overflow-hidden">
-                <details>
-                  <summary className="cursor-pointer text-rtm-brand">Ver más</summary>
-                  {r.especificaciones}
-                </details>
-              </td>
-              <td className="px-4 py-2 text-right">{r.cantidad}</td>
-
-              {showPrice && <td className="px-4 py-2 text-right">{r.precioRaw}</td>}
-
-              {showLocation && <td className="px-4 py-2">{r.ubicacion || "-"}</td>}
-
-              <td className="px-4 py-2 text-right">
-                {r.llegada || "-"}
-                {r.urgent && (
-                  <span className="ml-2 inline-block rounded-full bg-yellow-700/20 text-yellow-400 text-xs px-2 py-0.5">
-                    Próxima llegada
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div className="flex items-center justify-between p-3 border-t border-rtm-border text-rtm-sub text-sm">
-        <span>
-          Mostrando {start + 1}-{Math.min(start + pageSize, rows.length)} de {rows.length}
-        </span>
-        <div className="flex gap-2">
+      {/* Paginación */}
+      <div className="flex items-center justify-between text-sm text-rtm-sub">
+        <div>
+          Mostrando {start + 1}-{Math.min(start + pageSize, filtered.length)} de {filtered.length}
+        </div>
+        <div className="flex items-center gap-2">
           <button
-            className="btn btn-ghost px-3 py-1"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
+            className="btn btn-ghost"
+            disabled={safePage <= 1}
+            onClick={() => setPage(p => Math.max(1, p - 1))}
           >
             ← Anterior
           </button>
-          <span>Página {page}</span>
+          <span>Página {safePage} / {totalPages}</span>
           <button
-            className="btn btn-ghost px-3 py-1"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
+            className="btn btn-ghost"
+            disabled={safePage >= totalPages}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
           >
             Siguiente →
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
