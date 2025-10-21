@@ -1,5 +1,4 @@
 import dynamic from "next/dynamic";
-import Link from "next/link";
 
 export const revalidate = 60;
 
@@ -41,7 +40,6 @@ export default async function DealersPage() {
             <h1 className="text-2xl font-bold">Stock — Distribuidores</h1>
             <p className="text-rtm-sub">Sin precios</p>
           </div>
-          <Nav active="dealers" />
         </header>
         <div className="card p-6">Error: {data?.error ?? err ?? "API no disponible"}</div>
       </section>
@@ -62,37 +60,10 @@ export default async function DealersPage() {
         </div>
         <div className="flex items-center gap-3">
           <span className="chip chip-muted">Visible: {rows.length}</span>
-          <Nav active="dealers" />
         </div>
       </header>
 
       <StockClient rows={rows} showPrice={false} pageSize={25} />
     </section>
-  );
-}
-
-/** Botonera fija que navega por rutas del MISMO dominio */
-function Nav({ active }: { active: "dealers" | "internal" }) {
-  const base =
-    "px-4 py-2 rounded-lg border border-rtm-border hover:bg-rtm-accent/10 transition select-none";
-  const activeCls = "bg-rtm-accent text-white border-rtm-accent";
-  const inactive = "text-rtm-ink";
-  return (
-    <nav className="flex gap-2">
-      <Link
-        href="/dealers"
-        className={`${base} ${active === "dealers" ? activeCls : inactive}`}
-        aria-current={active === "dealers" ? "page" : undefined}
-      >
-        Distribuidores
-      </Link>
-      <Link
-        href="/internal"
-        className={`${base} ${active === "internal" ? activeCls : inactive}`}
-        aria-current={active === "internal" ? "page" : undefined}
-      >
-        Interno
-      </Link>
-    </nav>
   );
 }
