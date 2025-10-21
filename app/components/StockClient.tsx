@@ -1,138 +1,189 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from "react";
-import StockTable from "./StockTable";
+import * as React from "react";
 
 export type Row = {
+  fotoUrl?: string;
   tipo?: string;
-  modelo: string;
-  combustion: string;
-  especificaciones: string;
-  cantidad: string;
-  llegada: string;
-  precioRaw?: string | null;
+  modelo?: string;
+  combustion?: string;
+  especificaciones?: string;
+  cantidad?: string | number;
+  precioRaw?: string;   // precio dealers en texto (se respeta formato)
+  llegada?: string;
   urgent?: boolean;
-  fotoUrl?: string;        // 👈 añadimos la URL de la foto
+  [key: string]: any;   // permite columnas extra como ubicacion
 };
 
-const TYPES_ORDER = ["APILADOR ELECTRICO","CARRETILLA 3R","CARRETILLA 4R","TRANSPALETA ELECTRICA"];
+type ExtraColumn = {
+  key: string;          // propiedad del row, p.ej. "ubicacion"
+  title: string;        // encabezado a mostrar, p.ej. "Ubicación"
+  render?: (row: Row) => React.ReactNode; // opcional render personalizado
+};
 
-function normalizeType(v?: string) {
-  return (v || "").trim().toUpperCase();
-}
+type Props = {
+  rows: Row[];
+  showPrice?: boolean;
+  pageSize?: number;
+  /** NUEVO: columnas extra al final de la tabla (p.ej. Ubicación) */
+  extraColumns?: ExtraColumn[];
+};
 
 export default function StockClient({
   rows,
   showPrice = false,
   pageSize = 25,
-}: {
-  rows: Row[];
-  showPrice?: boolean;
-  pageSize?: number;
-}) {
-  const [query, setQuery] = useState("");
-  const [activeType, setActiveType] = useState<string>("TODOS");
-  const [page, setPage] = useState(1);
+  extraColumns = [],   // <-- por defecto vacío
+}: Props) {
+  const [q, setQ] = React.useState("");
+  const [page, setPage] = React.useState(1);
 
-  // contadores por tipo
-  const counts = useMemo(() => {
-    const all: Record<string, number> = {};
-    rows.forEach(r => {
-      const t = normalizeType(r.tipo);
-      all[t] = (all[t] || 0) + 1;
+  const filtered = React.useMemo(() => {
+    if (!q.trim()) return rows;
+    const needle = q.toLowerCase();
+    return rows.filter((r) => {
+      const hay =
+        (r.tipo || "") +
+        " " +
+        (r.modelo || "") +
+        " " +
+        (r.combustion || "") +
+        " " +
+        (r.especificaciones || "") +
+        " " +
+        (r.llegada || "") +
+        " " +
+        (r.precioRaw || "");
+      return hay.toLowerCase().includes(needle);
     });
-    return all;
-  }, [rows]);
+  }, [rows, q]);
 
-  // datos filtrados
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return rows.filter(r => {
-      const okType = activeType === "TODOS" || normalizeType(r.tipo) === activeType;
-      const okQuery =
-        !q ||
-        r.modelo?.toLowerCase().includes(q) ||
-        r.especificaciones?.toLowerCase().includes(q);
-      return okType && okQuery;
-    });
-  }, [rows, query, activeType]);
-
-  // paginación
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const start = (safePage - 1) * pageSize;
-  const pageRows = filtered.slice(start, start + pageSize);
+  const pageRows = React.useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
-  const onType = (t: string) => { setActiveType(t); setPage(1); };
-  const onQuery = (v: string) => { setQuery(v); setPage(1); };
-
-  const typesSorted = useMemo(() => {
-    const set = new Set(TYPES_ORDER.map(normalizeType));
-    const present = Object.keys(counts);
-    const known = TYPES_ORDER.map(normalizeType).filter(t => present.includes(t));
-    const others = present.filter(t => !set.has(t)).sort();
-    return [...known, ...others];
-  }, [counts]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [q]);
 
   return (
-    <section className="grid gap-4">
-      {/* Filtros + buscador (sticky bajo el header) */}
-      <div className="sticky top-[var(--header-h)] z-30 bg-rtm-surface/80 backdrop-blur-xl border border-rtm-border rounded-xl px-3 py-3 sticky-elev">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => onType("TODOS")}
-              className={`chip ${activeType === "TODOS" ? "chip-active" : "chip-muted"}`}
-            >
-              Todos ({rows.length})
-            </button>
+    <div className="grid gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Filtrar por MODELO, ESPECIFICACIONES…"
+          className="input"
+        />
+        <div className="text-rtm-sub">
+          Total filas cargadas (visibles): {filtered.length}
+        </div>
+      </div>
 
-            {typesSorted.map(t => (
-              <button
-                key={t}
-                onClick={() => onType(t)}
-                className={`chip ${activeType === t ? "chip-active" : "chip-muted"}`}
-              >
-                {t.charAt(0) + t.slice(1).toLowerCase()} ({counts[t] || 0})
-              </button>
-            ))}
+      <div className="card overflow-hidden">
+        <div className="overflow-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Foto</th>
+                <th>Modelo</th>
+                <th>Combustión/Batería</th>
+                <th>Especificaciones</th>
+                <th>Cant.</th>
+                {showPrice && <th>Precio Dealers</th>}
+                <th>Llegada</th>
+
+                {/* (A) ENCABEZADOS EXTRA */}
+                {extraColumns.map((col) => (
+                  <th key={col.key}>{col.title}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pageRows.map((r, idx) => (
+                <tr key={idx}>
+                  <td style={{ width: 70 }}>
+                    <img
+                      src={
+                        r.fotoUrl ||
+                        "data:image/svg+xml;utf8," +
+                          encodeURIComponent(
+                            `<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='100%' height='100%' fill='#e9eef6'/></svg>`
+                          )
+                      }
+                      alt={r.modelo}
+                      width={60}
+                      height={60}
+                      className="rounded border border-rtm-border object-cover"
+                    />
+                  </td>
+                  <td>
+                    <div className="font-semibold">{r.modelo || "-"}</div>
+                    <div className="text-rtm-sub text-sm">{r.tipo || ""}</div>
+                  </td>
+                  <td>{r.combustion || "-"}</td>
+                  <td
+                    dangerouslySetInnerHTML={{
+                      __html: (r.especificaciones || "").replace(/\n/g, "<br>"),
+                    }}
+                  />
+                  <td className="text-center">{r.cantidad ?? "-"}</td>
+                  {showPrice && (
+                    <td>
+                      {r.precioRaw?.trim()?.length ? (
+                        <div>
+                          <strong>{r.precioRaw.replace(/\n/g, " · ")}</strong>{" "}
+                          <small className="text-rtm-sub">+ IVA</small>
+                        </div>
+                      ) : (
+                        <span className="text-rtm-sub">Consultar</span>
+                      )}
+                    </td>
+                  )}
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <span>{r.llegada || "-"}</span>
+                      {r.urgent ? (
+                        <span className="chip chip-warn">Próxima llegada</span>
+                      ) : null}
+                    </div>
+                  </td>
+
+                  {/* (B) CELDAS EXTRA */}
+                  {extraColumns.map((col) => (
+                    <td key={col.key}>
+                      {col.render ? col.render(r) : r[col.key] ?? "-"}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Paginación */}
+        <div className="flex items-center justify-end gap-2 p-3 border-t border-rtm-border">
+          <button
+            className="btn"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            ◀
+          </button>
+          <div className="text-sm text-rtm-sub">
+            Página {page} / {totalPages}
           </div>
-
-          <input
-            placeholder="Filtrar por modelo o especificaciones…"
-            value={query}
-            onChange={e => onQuery(e.target.value)}
-            className="bg-rtm-surface2 border border-rtm-border rounded-lg px-3 py-2 text-sm outline-none focus:border-rtm-brand w-[320px] max-w-full"
-          />
-        </div>
-      </div>
-
-      {/* Tabla */}
-      <StockTable rows={pageRows} showPrice={showPrice} />
-
-      {/* Paginación */}
-      <div className="flex items-center justify-between text-sm text-rtm-sub">
-        <div>
-          Mostrando {start + 1}-{Math.min(start + pageSize, filtered.length)} de {filtered.length}
-        </div>
-        <div className="flex items-center gap-2">
           <button
-            className="btn btn-ghost"
-            disabled={safePage <= 1}
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            className="btn"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
-            ← Anterior
-          </button>
-          <span>Página {safePage} / {totalPages}</span>
-          <button
-            className="btn btn-ghost"
-            disabled={safePage >= totalPages}
-            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          >
-            Siguiente →
+            ▶
           </button>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
