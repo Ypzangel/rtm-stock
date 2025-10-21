@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { format } from "date-fns";
 
 type Row = {
   tipo: string;
@@ -33,7 +32,6 @@ export default function StockClient({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  // función para ordenar según columna y tipo
   const sortedRows = useMemo(() => {
     if (!sortKey) return rows;
 
