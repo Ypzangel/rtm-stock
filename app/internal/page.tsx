@@ -48,7 +48,12 @@ export default async function InternalPage() {
     );
   }
 
-  const rows = data?.rows ?? [];
+  const rows = (data?.rows ?? []).map((r: any) => ({
+    ...r,
+    // Normalizamos por si viene con mayúsculas del backend
+    ubicacion: r.ubicacion ?? r.UBICACION ?? r.Ubicacion ?? "",
+  }));
+
   const s = data?.stats;
 
   return (
@@ -57,7 +62,7 @@ export default async function InternalPage() {
         <div>
           <h1 className="text-2xl font-bold">Stock — Vista Interna</h1>
           <p className="flex gap-2 items-center text-rtm-sub">
-            <span>Con precios.</span>
+            <span>Con precios y ubicación.</span>
             <Updated at={data?.updatedAt} />
           </p>
         </div>
@@ -74,7 +79,19 @@ export default async function InternalPage() {
         </div>
       </header>
 
-      <StockClient rows={rows} showPrice pageSize={25} />
+      {/* 
+        Pasamos columna extra "Ubicación".
+        Si tu StockClient aún no admite extraColumns,
+        te paso el cambio en ese archivo.
+      */}
+      <StockClient
+        rows={rows}
+        showPrice
+        pageSize={25}
+        extraColumns={[
+          { key: "ubicacion", title: "Ubicación" },
+        ]}
+      />
     </section>
   );
 }
