@@ -12,7 +12,7 @@ export type Row = {
   llegada: string;
   precioRaw?: string | null;
   urgent?: boolean;
-  fotoUrl?: string;        // 👈 añadimos la URL de la foto
+  ubicacion?: string | null; // NUEVO
 };
 
 const TYPES_ORDER = ["APILADOR ELECTRICO","CARRETILLA 3R","CARRETILLA 4R","TRANSPALETA ELECTRICA"];
@@ -24,10 +24,12 @@ function normalizeType(v?: string) {
 export default function StockClient({
   rows,
   showPrice = false,
+  showLocation = false,   // NUEVO
   pageSize = 25,
 }: {
   rows: Row[];
   showPrice?: boolean;
+  showLocation?: boolean; // NUEVO
   pageSize?: number;
 }) {
   const [query, setQuery] = useState("");
@@ -44,7 +46,7 @@ export default function StockClient({
     return all;
   }, [rows]);
 
-  // datos filtrados
+  // datos filtrados (modelo + especificaciones)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter(r => {
@@ -82,7 +84,7 @@ export default function StockClient({
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => onType("TODOS")}
-              className={`chip ${activeType === "TODOS" ? "chip-active" : "chip-muted"}`}
+              className={`chip ${activeType==="TODOS" ? "chip-active" : "chip-muted"}`}
             >
               Todos ({rows.length})
             </button>
@@ -91,7 +93,7 @@ export default function StockClient({
               <button
                 key={t}
                 onClick={() => onType(t)}
-                className={`chip ${activeType === t ? "chip-active" : "chip-muted"}`}
+                className={`chip ${activeType===t ? "chip-active" : "chip-muted"}`}
               >
                 {t.charAt(0) + t.slice(1).toLowerCase()} ({counts[t] || 0})
               </button>
@@ -108,7 +110,7 @@ export default function StockClient({
       </div>
 
       {/* Tabla */}
-      <StockTable rows={pageRows} showPrice={showPrice} />
+      <StockTable rows={pageRows} showPrice={showPrice} showLocation={showLocation} />
 
       {/* Paginación */}
       <div className="flex items-center justify-between text-sm text-rtm-sub">
