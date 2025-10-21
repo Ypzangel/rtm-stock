@@ -1,18 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from "react";
-
-type Row = {
-  tipo?: string;
-  modelo: string;
-  combustion: string;
-  especificaciones: string;
-  cantidad: string;
-  llegada: string;
-  precioRaw?: string | null;
-  urgent?: boolean;
-  fotoUrl?: string;            // 👈 añadimos la foto aquí también
-};
+import type { Row } from "./StockClient";
 
 function keepEuroNoWrap(v?: string | null) {
   if (!v) return "-";
@@ -76,9 +65,11 @@ function SpecCell({
 export default function StockTable({
   rows,
   showPrice = false,
+  showLocation = false, // NUEVO
 }: {
   rows: Row[];
   showPrice?: boolean;
+  showLocation?: boolean; // NUEVO
 }) {
   const [open, setOpen] = useState<Set<number>>(new Set());
   const toggle = (i: number) => {
@@ -92,23 +83,23 @@ export default function StockTable({
       <div className="overflow-x-auto">
         <table className="table">
           <colgroup>
-            <col className="w-[64px]" />                 {/* Foto */}
-            <col className="md:w-[20%]" />               {/* Modelo */}
-            <col className="hidden md:table-column md:w-[18%]" /> {/* Combustión */}
-            <col className="md:w-[40%]" />               {/* Especificaciones */}
-            <col className="md:w-[8%]" />                {/* Cant */}
-            {showPrice && <col className="md:w-[12%]" />} {/* Precio */}
-            <col className="md:w-[12%]" />               {/* Llegada */}
+            <col className="md:w-[22%]" />
+            <col className="hidden md:table-column md:w-[18%]" />
+            <col className="md:w-[38%]" />
+            <col className="md:w-[8%]" />
+            {showPrice && <col className="md:w-[12%]" />}
+            {showLocation && <col className="md:w-[12%]" />}
+            <col className="md:w-[12%]" />
           </colgroup>
 
           <thead className="sticky top-0 z-10">
             <tr>
-              <th className="whitespace-nowrap">Foto</th>
               <th className="whitespace-nowrap">Modelo</th>
               <th className="hidden md:table-cell whitespace-nowrap">Combustión/Batería</th>
               <th className="whitespace-nowrap">Especificaciones</th>
               <th className="text-center whitespace-nowrap">Cant.</th>
               {showPrice && <th className="text-right whitespace-nowrap">Precio</th>}
+              {showLocation && <th className="text-right whitespace-nowrap">Ubicación</th>}
               <th className="text-right whitespace-nowrap">Llegada</th>
             </tr>
           </thead>
@@ -116,58 +107,43 @@ export default function StockTable({
           <tbody>
             {rows.map((r, i) => {
               const isOpen = open.has(i);
-
               return (
                 <tr key={i}>
-                  {/* FOTO */}
-                  <td className="px-4 py-3 align-top">
-                    {r.fotoUrl ? (
-                      <img
-                        src={r.fotoUrl}
-                        alt={r.modelo}
-                        loading="lazy"
-                        className="h-12 w-12 rounded-md object-cover bg-rtm-surface2 border border-rtm-border"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-md bg-rtm-surface2 border border-rtm-border" />
-                    )}
-                  </td>
-
-                  {/* Modelo */}
-                  <td className="font-medium pr-2 align-top">
+                  <td className="font-medium pr-2">
                     <span className="block truncate">{r.modelo}</span>
                   </td>
 
-                  {/* Combustión (oculta en móvil) */}
-                  <td className="hidden md:table-cell text-rtm-sub pr-2 align-top">
+                  <td className="hidden md:table-cell text-rtm-sub pr-2">
                     <span className="block">{r.combustion}</span>
                   </td>
 
-                  {/* Especificaciones */}
                   <SpecCell
                     text={r.especificaciones || ""}
                     isOpen={isOpen}
                     onToggle={() => toggle(i)}
                   />
 
-                  {/* Cantidad */}
                   <td className="text-center whitespace-nowrap align-top">{r.cantidad}</td>
 
-                  {/* Precio (si aplica) */}
                   {showPrice && (
                     <td className="text-right font-semibold whitespace-nowrap tabular-nums align-top">
                       {keepEuroNoWrap(r.precioRaw)}
                     </td>
                   )}
 
-                  {/* Llegada */}
+                  {showLocation && (
+                    <td className="text-right whitespace-nowrap align-top">
+                      {r.ubicacion?.toString().trim() || "-"}
+                    </td>
+                  )}
+
                   <td className="text-right whitespace-nowrap align-top">
                     {(() => {
                       const raw = (r.llegada || "").trim();
                       const norm = raw
                         .normalize("NFD")
                         .replace(/[\u0300-\u036f]/g, "")
-                        .toUpperCase(); // FABRICACIÓN -> FABRICACION
+                        .toUpperCase();
 
                       let badge: JSX.Element | null = null;
                       let text: string | null = null;
@@ -178,7 +154,9 @@ export default function StockTable({
                         badge = <span className="chip-ok">Stock</span>;
                       } else if (raw) {
                         text = raw;
-                        if (r.urgent) badge = <span className="chip chip-warn">Próxima llegada</span>;
+                        if (r.urgent) {
+                          badge = <span className="chip chip-warn">Próxima llegada</span>;
+                        }
                       } else {
                         text = "-";
                       }
