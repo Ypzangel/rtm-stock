@@ -1,48 +1,48 @@
-"use client";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { headers } from "next/headers";
+
+const BASE_DOMAIN = "rtmequipment.net"; // si algún día cambia, edita aquí
 
 export default function Header() {
-  const pathname = usePathname() || "/";
-  const onDealers = pathname.startsWith("/dealers");
-  const onInternal = pathname.startsWith("/internal");
+  const host = headers().get("host") || "";
+  const isDealers = host.startsWith("dealers.");
+  const isInternal = host.startsWith("internal.");
 
-  const linkBase =
-    "px-4 py-2 rounded-lg border border-rtm-border hover:bg-rtm-accent/10 transition select-none no-underline";
-  const active = "bg-rtm-accent text-white border-rtm-accent";
-  const inactive = "text-rtm-ink";
+  const dealersUrl = `https://dealers.${BASE_DOMAIN}`;
+  const internalUrl = `https://internal.${BASE_DOMAIN}`;
 
   return (
     <header className="sticky top-0 z-50 border-b border-rtm-border bg-rtm-surface/90 backdrop-blur">
       <div className="max-w-screen-2xl mx-auto px-4 h-14 flex items-center justify-between">
+        {/* Logo / marca */}
         <Link href="/" className="flex items-center gap-2 no-underline">
-          {/* Si tienes el logo en public/logo-rtm-white.svg, úsalo; si no, queda el texto */}
-          {/* <img src="/logo-rtm-white.svg" alt="RTM" className="h-5" /> */}
           <span className="text-xl font-bold tracking-wide">
             RTM <span className="text-rtm-brand">Equipment</span>
           </span>
         </Link>
 
+        {/* Nav contextual por host */}
         <nav className="flex items-center gap-2">
-          {/* Dealers SIEMPRE visible */}
-          <Link
-            href="/dealers"
-            className={`${linkBase} ${onDealers ? active : inactive}`}
-            aria-current={onDealers ? "page" : undefined}
-          >
-            Distribuidores
-          </Link>
+          {/* En internal mostramos SOLO el enlace a dealers (subdominio) */}
+          {isInternal && (
+            <a className="btn btn-ghost no-underline" href={dealersUrl}>
+              Distribuidores
+            </a>
+          )}
 
-          {/* Interno SOLO cuando NO estás en /dealers */}
-          {!onDealers && (
-            <Link
-              href="/internal"
-              className={`${linkBase} ${onInternal ? active : inactive}`}
-              aria-current={onInternal ? "page" : undefined}
-            >
-              Interno
-            </Link>
+          {/* En dealers NO mostramos nada */}
+          {isDealers && null}
+
+          {/* Fallback (por ejemplo en domain vercel o localhost): mostramos rutas locales */}
+          {!isDealers && !isInternal && (
+            <>
+              <Link className="btn btn-ghost no-underline" href="/dealers">
+                Distribuidores
+              </Link>
+              <Link className="btn btn-primary no-underline" href="/internal">
+                Interno
+              </Link>
+            </>
           )}
         </nav>
       </div>
