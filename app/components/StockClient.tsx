@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 
-type Row = {
+// 👇 CAMBIA 'type Row' → 'export type Row'
+export type Row = {
   tipo: string;
   modelo: string;
   combustion: string;
@@ -123,7 +124,6 @@ export default function StockClient({
         </tbody>
       </table>
 
-      {/* Paginación */}
       <div className="flex items-center justify-between p-3 border-t border-rtm-border text-rtm-sub text-sm">
         <span>
           Mostrando {start + 1}-{Math.min(start + pageSize, rows.length)} de {rows.length}
