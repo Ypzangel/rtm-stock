@@ -8,7 +8,6 @@ function keepEuroNoWrap(v?: string | null) {
   return v.replace(/\s€$/, "\u00A0€");
 }
 
-/** Celda de especificaciones con detección real de overflow */
 function SpecCell({
   text,
   isOpen,
@@ -65,13 +64,14 @@ function SpecCell({
 export default function StockTable({
   rows,
   showPrice = false,
-  showLocation = false, // NUEVO
+  showLocation = false,
 }: {
   rows: Row[];
   showPrice?: boolean;
-  showLocation?: boolean; // NUEVO
+  showLocation?: boolean;
 }) {
   const [open, setOpen] = useState<Set<number>>(new Set());
+
   const toggle = (i: number) => {
     const next = new Set(open);
     next.has(i) ? next.delete(i) : next.add(i);
@@ -83,23 +83,25 @@ export default function StockTable({
       <div className="overflow-x-auto">
         <table className="table">
           <colgroup>
-            <col className="md:w-[22%]" />
-            <col className="hidden md:table-column md:w-[18%]" />
-            <col className="md:w-[38%]" />
-            <col className="md:w-[8%]" />
-            {showPrice && <col className="md:w-[12%]" />}
-            {showLocation && <col className="md:w-[12%]" />}
-            <col className="md:w-[12%]" />
+            <col className="md:w-[6%]" />   {/* Foto */}
+            <col className="md:w-[20%]" />  {/* Modelo */}
+            <col className="hidden md:table-column md:w-[18%]" /> {/* Combustión */}
+            <col className="md:w-[36%]" />  {/* Especificaciones */}
+            <col className="md:w-[6%]" />   {/* Cant */}
+            {showPrice && <col className="md:w-[10%]" />}       {/* Precio */}
+            {showLocation && <col className="md:w-[10%]" />}    {/* Ubicación */}
+            <col className="md:w-[12%]" />  {/* Llegada */}
           </colgroup>
 
           <thead className="sticky top-0 z-10">
             <tr>
+              <th className="whitespace-nowrap">Foto</th>
               <th className="whitespace-nowrap">Modelo</th>
               <th className="hidden md:table-cell whitespace-nowrap">Combustión/Batería</th>
               <th className="whitespace-nowrap">Especificaciones</th>
               <th className="text-center whitespace-nowrap">Cant.</th>
               {showPrice && <th className="text-right whitespace-nowrap">Precio</th>}
-              {showLocation && <th className="text-right whitespace-nowrap">Ubicación</th>}
+              {showLocation && <th className="whitespace-nowrap">Ubicación</th>}
               <th className="text-right whitespace-nowrap">Llegada</th>
             </tr>
           </thead>
@@ -109,34 +111,56 @@ export default function StockTable({
               const isOpen = open.has(i);
               return (
                 <tr key={i}>
+                  {/* Foto */}
+                  <td className="align-top">
+                    {r.fotoUrl ? (
+                      <img
+                        src={r.fotoUrl}
+                        alt={r.modelo}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="h-12 w-12 object-cover rounded-md border border-rtm-border/60 bg-rtm-surface2"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-md border border-rtm-border/60 bg-rtm-surface2" />
+                    )}
+                  </td>
+
+                  {/* Modelo */}
                   <td className="font-medium pr-2">
                     <span className="block truncate">{r.modelo}</span>
                   </td>
 
+                  {/* Combustión (oculta en móvil) */}
                   <td className="hidden md:table-cell text-rtm-sub pr-2">
                     <span className="block">{r.combustion}</span>
                   </td>
 
+                  {/* Especificaciones */}
                   <SpecCell
                     text={r.especificaciones || ""}
                     isOpen={isOpen}
                     onToggle={() => toggle(i)}
                   />
 
+                  {/* Cantidad */}
                   <td className="text-center whitespace-nowrap align-top">{r.cantidad}</td>
 
+                  {/* Precio (si aplica) */}
                   {showPrice && (
                     <td className="text-right font-semibold whitespace-nowrap tabular-nums align-top">
                       {keepEuroNoWrap(r.precioRaw)}
                     </td>
                   )}
 
+                  {/* Ubicación (si aplica) */}
                   {showLocation && (
-                    <td className="text-right whitespace-nowrap align-top">
-                      {r.ubicacion?.toString().trim() || "-"}
+                    <td className="whitespace-nowrap align-top">
+                      {r.ubicacion || "-"}
                     </td>
                   )}
 
+                  {/* Llegada */}
                   <td className="text-right whitespace-nowrap align-top">
                     {(() => {
                       const raw = (r.llegada || "").trim();
@@ -154,9 +178,7 @@ export default function StockTable({
                         badge = <span className="chip-ok">Stock</span>;
                       } else if (raw) {
                         text = raw;
-                        if (r.urgent) {
-                          badge = <span className="chip chip-warn">Próxima llegada</span>;
-                        }
+                        if (r.urgent) badge = <span className="chip chip-warn">Próxima llegada</span>;
                       } else {
                         text = "-";
                       }
