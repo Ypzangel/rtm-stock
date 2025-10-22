@@ -12,7 +12,8 @@ export type Row = {
   llegada: string;
   precioRaw?: string | null;
   urgent?: boolean;
-  ubicacion?: string | null; // NUEVO
+  ubicacion?: string | null;  // <- ya lo tenías
+  fotoUrl?: string | null;     // <- AÑADIDO (necesario para mostrar imágenes)
 };
 
 const TYPES_ORDER = ["APILADOR ELECTRICO","CARRETILLA 3R","CARRETILLA 4R","TRANSPALETA ELECTRICA"];
@@ -24,19 +25,18 @@ function normalizeType(v?: string) {
 export default function StockClient({
   rows,
   showPrice = false,
-  showLocation = false,   // NUEVO
+  showLocation = false,
   pageSize = 25,
 }: {
   rows: Row[];
   showPrice?: boolean;
-  showLocation?: boolean; // NUEVO
+  showLocation?: boolean;
   pageSize?: number;
 }) {
   const [query, setQuery] = useState("");
   const [activeType, setActiveType] = useState<string>("TODOS");
   const [page, setPage] = useState(1);
 
-  // contadores por tipo
   const counts = useMemo(() => {
     const all: Record<string, number> = {};
     rows.forEach(r => {
@@ -46,7 +46,6 @@ export default function StockClient({
     return all;
   }, [rows]);
 
-  // datos filtrados (modelo + especificaciones)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return rows.filter(r => {
@@ -59,7 +58,6 @@ export default function StockClient({
     });
   }, [rows, query, activeType]);
 
-  // paginación
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * pageSize;
@@ -78,7 +76,6 @@ export default function StockClient({
 
   return (
     <section className="grid gap-4">
-      {/* Filtros + buscador (sticky bajo el header) */}
       <div className="sticky top-[var(--header-h)] z-30 bg-rtm-surface/80 backdrop-blur-xl border border-rtm-border rounded-xl px-3 py-3 sticky-elev">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2">
@@ -88,7 +85,6 @@ export default function StockClient({
             >
               Todos ({rows.length})
             </button>
-
             {typesSorted.map(t => (
               <button
                 key={t}
@@ -109,10 +105,8 @@ export default function StockClient({
         </div>
       </div>
 
-      {/* Tabla */}
       <StockTable rows={pageRows} showPrice={showPrice} showLocation={showLocation} />
 
-      {/* Paginación */}
       <div className="flex items-center justify-between text-sm text-rtm-sub">
         <div>
           Mostrando {start + 1}-{Math.min(start + pageSize, filtered.length)} de {filtered.length}
